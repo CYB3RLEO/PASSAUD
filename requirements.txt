@@ -1,0 +1,11 @@
+bcrypt>=3.2.0
+argon2-cffi>=21.3.0
+scrypt>=0.8.18
+requests>=2.28.0
+cryptography>=36.0.0
+tqdm>=4.64.0
+validators>=0.20.0
+cmd2>=2.4.0
+pyopencl>=2022.1
+numba>=0.56.0
+numpy>=1.22.0
