@@ -10,6 +10,7 @@ setup(
     name="passaud",
     version="0.1.0",
     author="CYB3RLEO",
+    author_email="abdulazeezhibullahikolade@gmail.com",
     description="High-Performance Password Security Analysis Tool",
     long_description=long_description,
     long_description_content_type="text/markdown",

@@ -1,0 +1,22 @@
+FROM python:3.10-slim
+
+WORKDIR /app
+
+# Install system dependencies for GPU support if needed
+RUN apt-get update && apt-get install -y \
+    ocl-icd-opencl-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements first to leverage Docker cache
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy the application
+COPY . .
+
+# Create a non-root user
+RUN useradd --create-home --shell /bin/bash app
+USER app
+
+# Set entrypoint
+ENTRYPOINT ["python", "-m", "passaud.cli.main"]

@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  passaud:
+    build: .
+    volumes:
+      - .:/app
+      - ./data/wordlists:/app/data/wordlists
+    environment:
+      - LOG_LEVEL=INFO
+    command: ["--help"]
