@@ -2,100 +2,138 @@
 Main CLI entry point for PassAud.
 """
 
-import argparse
 import logging
 import sys
 import json
+import getpass
 
 from passaud.utils.logger import setup_logging
-from passaud.core.analyzer import PasswordAnalyzer
-from passaud.cli.help import print_comprehensive_help, print_quick_guide, print_banner
+from passaud.core.auditor import PasswordAuditor
+from passaud.cli.help import print_banner, print_comprehensive_help, print_quick_guide
+from passaud.config.config_manager import ConfigManager
+from passaud.cli.parser import create_parser
 
 
 def main():
     """Main CLI function."""
-    # Set up argument parser
-    parser = argparse.ArgumentParser(
-        description="PassAud - Password Security Analysis Tool",
-        epilog="For more information, visit https://github.com/CYB3RLEO/PASSAUD"
-    )
-
-    parser.add_argument(
-        "-v", "--verbose",
-        action="store_true",
-        help="Enable verbose output"
-    )
-
-    parser.add_argument(
-        "--log-file",
-        help="Path to log file"
-    )
-
-    parser.add_argument(
-        "--json",
-        action="store_true",
-        help="Output in JSON format"
-    )
-
-    parser.add_argument(
-        "--manual",
-        action="store_true",
-        help="Show comprehensive manual"
-    )
-
-    # Add subcommands
-    subparsers = parser.add_subparsers(
-        dest="command", help="Command to execute")
-
-    # Strength analysis command
-    strength_parser = subparsers.add_parser(
-        "strength",
-        help="Analyze password strength"
-    )
-    strength_parser.add_argument(
-        "password",
-        help="Password to analyze"
-    )
-
-    # Parse arguments
+    parser = create_parser()  # Use our custom parser
     args = parser.parse_args()
+
+    # Handle help and manual requests first
+    if args.manual:
+        print_comprehensive_help()
+        return 0
 
     # Set up logging
     log_level = logging.DEBUG if args.verbose else logging.INFO
     setup_logging(level=log_level, log_file=args.log_file)
     logger = logging.getLogger("passaud")
 
-    if args.manual:
-        print_comprehensive_help()
+    # Load configuration
+    config_manager = ConfigManager(args.config)
+
+    # Handle interactive mode
+    if args.interactive:
+        from passaud.cli.shell import PassAudShell
+        shell = PassAudShell(config_manager)
+        shell.cmdloop()
         return 0
 
-    if not hasattr(args, 'command') or args.command is None:
-        print_banner()
-        print_quick_guide()
-        return
+    # Print banner for command execution
+    print_banner()
+
+    auditor = PasswordAuditor(config_manager)
 
     # Handle commands
     if args.command == "strength":
         logger.info(f"Analyzing password strength: {args.password}")
-
-        # Initialize analyzer and analyze password
-        analyzer = PasswordAnalyzer()
-        result = analyzer.analyze(args.password)
-
-        # Output results
+        result = auditor.analyze_strength(args.password)
         if args.json:
             print(json.dumps(result, indent=2))
         else:
             print(f"Password: {args.password}")
             print(f"Strength: {result['rating']} ({result['score']}/5)")
             print(f"Length: {result['length']} characters")
-            if result['vulnerabilities']:
-                print("Vulnerabilities:")
+            print(f"Entropy: {result['entropy']} bits")
+            if result.get('vulnerabilities'):
+                print("\nVulnerabilities:")
                 for vuln in result['vulnerabilities']:
                     print(f"  - {vuln}")
+            if result.get('feedback'):
+                print("\nRecommendations:")
+                for item in result['feedback']:
+                    print(f"  - {item}")
+
+    elif args.command == "dict":
+        logger.info(f"Dictionary attack on: {args.target}")
+        result = auditor.dictionary_attack(
+            target=args.target,
+            wordlist_path=args.wordlist,
+            hash_type=args.hash_type,
+            apply_rules=args.rules,
+            max_words=args.max_words
+        )
+        if args.json:
+            print(json.dumps(result, indent=2))
+        else:
+            if result['found']:
+                print(f"✓ Password found: {result['password']}")
+            else:
+                print("✗ Password not found")
+            print(f"Attempts: {result['attempts']}")
+            print(f"Time: {result['time_elapsed']:.2f} seconds")
+
+    elif args.command == "dehash":
+        logger.info(f"Dehashing: {args.hash}")
+        result = auditor.deep_dehash(
+            hash_value=args.hash,
+            use_online=args.online,
+            wordlist_path=args.wordlist,
+            max_words=args.max_words,
+            strategy=args.strategy
+        )
+        if args.json:
+            print(json.dumps(result, indent=2))
+        else:
+            if result['cracked']:
+                print(f"✓ Hash cracked: {result['password']}")
+                print(f"Method: {result['method']}")
+            else:
+                print("✗ Hash not cracked")
+                print(f"Method attempted: {result['method']}")
+            print(f"Time: {result['time_elapsed']:.2f} seconds")
+            print(f"Attempts: {result['attempts']}")
+
+    elif args.command == "brute":
+        logger.info(f"Brute-force estimation for: {args.password}")
+        result = auditor.estimate_bruteforce(args.password, args.speed)
+        if args.json:
+            print(json.dumps(result, indent=2))
+        else:
+            print(f"Password: {args.password}")
+            print(f"Time Estimate: {result['time_estimate']}")
+            print(f"Combinations: {result['combinations']}")
+            print(f"Character Sets: {', '.join(result['character_sets'])}")
+            print(f"Charset Size: {result['charset_size']}")
+
+    elif args.command == "hash":
+        logger.info(f"Generating {args.algorithm} hash for: {args.password}")
+        hash_result = auditor.hasher.hash_string(args.password, args.algorithm)
+        result = {
+            "password": args.password,
+            "algorithm": args.algorithm,
+            "hash": hash_result
+        }
+        if args.json:
+            print(json.dumps(result, indent=2))
+        else:
+            print(f"Algorithm: {args.algorithm.upper()}")
+            print(f"Input: {args.password}")
+            print(f"Hash: {hash_result}")
 
     else:
-        parser.print_help()
+        # No command provided, show quick guide
+        print_quick_guide()
 
     return 0
 
