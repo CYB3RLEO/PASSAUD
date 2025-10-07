@@ -38,7 +38,8 @@ class ConfigManager:
             'max_requests_per_minute': '30',
             'gpu_enabled': 'true',
             'batch_size': '1000',
-            'max_bruteforce_length': '8'
+            'max_bruteforce_length': '8',
+            'session_key_file': os.path.expanduser("~/.passaud_session.key")
         }
         self.config['API_KEYS'] = {}
         self.save_config()
