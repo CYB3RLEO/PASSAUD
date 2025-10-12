@@ -38,16 +38,15 @@ pip install -e .
 
 # Install in normal mode
 pip install .
-( sudo for global install)
+
+# add 'sudo' for global install
+sudo pip install .
 ```
 
 ### Docker Installation
 ```bash
 # Build from source
 docker build -t passaud .
-
-# Or use pre-built image (when available)
-docker pull cyb3rleo/passaud:latest
 
 # Run container
 docker run -it -v $(pwd)/data:/app/data passaud --help
@@ -57,9 +56,6 @@ docker run -it -v $(pwd)/data:/app/data passaud --help
 ```bash
 # Test installation
 passaud --help
-
-# Check version
-passaud --version
 ```
 
 ## Quick Start
