@@ -18,7 +18,6 @@ PassAud is a high-performance password security analysis tool designed for secur
 ### Prerequisites
 - Python 3.8+
 - pip package manager
-- Git (for development version)
 
 ### Basic Installation
 ```bash
@@ -36,6 +35,10 @@ pip install -r requirements.txt
 
 # Install in development mode
 pip install -e .
+
+# Install in normal mode
+pip install .
+( sudo for global install)
 ```
 
 ### Docker Installation
